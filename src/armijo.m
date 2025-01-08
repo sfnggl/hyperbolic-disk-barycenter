@@ -1,3 +1,4 @@
+% inexact line search
 function alpha = armijo(f,g,x,opts)
   if not(exist("opts"))
     abar = 1;

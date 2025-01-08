@@ -1,5 +1,8 @@
 function b = poincare(n)
-  f = @(x, A, b) 0.5*(x'*A*x) - b'*x;
-  g = @(x, A, b) A*x - b;
-  steepest_descent(f,g);
+  %% initialize n random points on the unit square
+  %% the distance function
+  %% the baricenter function
+  %% the evaluation function and its gradient
+  %% perform the search
+  %% plot results
 end
