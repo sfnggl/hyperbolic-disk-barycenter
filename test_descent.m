@@ -2,7 +2,7 @@ clear all;
 
 addpath(genpath('./src'))
 
-function [A, x_stationary] = test_descent
+function [A, x_stationary] = test_descent(search_type)
   max_iter = 1000;
   n = 100;
   %% Generate a positive-definite matrix
@@ -18,7 +18,19 @@ function [A, x_stationary] = test_descent
   g = @(x)(gradfunc(x,A,b));
   % time the search
   tic
-  [xs_stationary, grad_sequence] = steepest_descent(f, g, x0);
+  if ~exist("search_type")
+    t = "sd";
+  else
+    t = search_type;
+  end
+  switch (t)
+    case "sd"
+      [xs_stationary, grad_sequence] = sd(f, g, x0);
+    case "bb"
+      [xs_stationary, grad_sequence] = bb(f, g, x0);
+    otherwise
+      disp("no valid search type")
+  end
   toc
   total_steps = size(xs_stationary, 2);
   semilogy([1:total_steps], cellfun(@norm,num2cell(grad_sequence,1)));
