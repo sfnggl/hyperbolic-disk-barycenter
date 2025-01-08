@@ -1,4 +1,4 @@
-function [xs, ds] = search(f,g,x0,opts)
+function [xs, ds, steps] = search(f,g,x0,opts)
 
   %% define possible search types
   possible_search_types = [{"sd" "Sd" "SD"};{"bb" "Bb" "BB"}];
@@ -31,9 +31,9 @@ function [xs, ds] = search(f,g,x0,opts)
   tic;
   switch (search_type)
     case {"sd"}
-      [xs, ds] = steepest_descent(f,g,x0,max_iter,tol)
+      [xs, ds, steps] = sd(f,g,x0,max_iter,tol)
     case {"bb"}
-      [xs, ds] = bb(f,g,x0,max_iter,tol)
+      [xs, ds, steps] = bb(f,g,x0,max_iter,tol)
     otherwise
       error ("invalid search type")
   end

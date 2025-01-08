@@ -1,4 +1,4 @@
-function [x_stat, g_stat] = bb(f, g, x0, max_iter, tol)
+function [x_stat, g_stat, steps] = bb(f, g, x0, max_iter, tol)
   if nargin() < 3
     error("not enough inputs supplied")
   end
@@ -26,7 +26,7 @@ function [x_stat, g_stat] = bb(f, g, x0, max_iter, tol)
       break
     end
   end
-  l
+  steps = l;
   x_stat = x;
   g_stat = d;
 end

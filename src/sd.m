@@ -1,4 +1,4 @@
-function [x_stat, g_stat] = sd(f, g, x0, max_iter, tol)
+function [x_stat, g_stat, steps] = sd(f, g, x0, max_iter, tol)
   if not(exist("max_iter"))
     max_iter = 1000
   end
@@ -20,7 +20,7 @@ function [x_stat, g_stat] = sd(f, g, x0, max_iter, tol)
       break
     end
   end
-  l
+  steps = l;
   x_stat = x;
   g_stat = d;
 end
