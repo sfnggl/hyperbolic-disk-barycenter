@@ -3,10 +3,10 @@ function [x_stat, g_stat, steps] = bb(f, g, x0, max_iter, tol)
     error("not enough inputs supplied")
   end
   if not(exist("max_iter"))
-    max_iter = 1000
+    max_iter = 1000;
   end
   if not(exist("tol"))
-    tol = 10d-10
+    tol = 10d-10;
   end
   l = 1;
   x = [x0];
@@ -14,7 +14,7 @@ function [x_stat, g_stat, steps] = bb(f, g, x0, max_iter, tol)
   alpha = [1];
   while norm(d(:,l)) > tol && l < max_iter
     %% compute next step
-    x = [x, x + alpha(l)*d(:,l)];
+    x = [x, x(:,l) - alpha(l)*d(:,l)];
     %% compute next gradient
     d = [d, -g(x(:,l+1))];
     s = x(:,l+1) - x(:,l);
@@ -29,7 +29,6 @@ function [x_stat, g_stat, steps] = bb(f, g, x0, max_iter, tol)
       break
     end
     l = l+1;
-    % norm(s), norm(y)
   end
   steps = l;
   x_stat = x;

@@ -1,9 +1,9 @@
 function [x_stat, g_stat, steps] = sd(f, g, x0, max_iter, tol)
   if not(exist("max_iter"))
-    max_iter = 1000
+    max_iter = 1000;
   end
   if not(exist("tol"))
-    tol = 10d-10
+    tol = 10d-10;
   end
   l = 1;
   x = [x0];

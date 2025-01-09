@@ -17,47 +17,41 @@ function b = poincarediskbaricenter(opts)
 
   pkg load sqlite;
 
-  if ~exist("opts")
-    opts = struct("search_type", "sd", "field", "real");
+  if ~exist("opts","var")
+    error("Invalid call to poincarediskbaricenter. Correct usage is:\n\n\
+-- B = poincarediskbaricenter(struct(\"search_type\", \"...\"))\n\n\n");
+    return;
   end
 
   % random points on the unit square
-  db = sqlite('points.db');
+  db = sqlite('src/points.db');
   data_points = sqlread(db, "unit_circle_points");
+  close(db);
 
-  %% initialize data structures based on given domain
-  switch (opts.real)
-	 case {"real"}
-	   % search the baricenter on the diameter of the disk, i.e. Im(z) == 0
-	   points = [cell2mat(data_points.x)]';
-	   n = size(points,1);
-	   f = @(x) sum(cellfun(@(pi) distance(x,pi)^2, points)) / n;
-	   g = @(x) sum(cellfun(@(pi) (distance(x,pi) / (x^2 - 1)), points)) ...
-	       * 2 / n;
-	   x0 = rand_start()
-	 case {"complex"}
-  	  %
-	 otherwise
-	   disp(...
-		 "Please provide a correct domain.
-		 Possible domains are: real, complex")
-	   exit()
-  end
+  %% initialize data structures
+  points = [cell2mat(data_points.x),cell2mat(data_points.y)]';
+  n = size(points,1);
+  f = @(x) weighted_distances(x, points);
+  g = @(x) gradient_distances(x, points);
+  x0 = rand_start()
   
-  % perform the search
+  % perform the searches
+  % sd
+  % bb with alternating steps
+  % bb with non-monotone line search
   [xs, ds, steps] = search(f,g,x0,opts.search_type);
   b = xs(:,steps)
   % plot results
+  % plot points on the unit square (first subplot)
   % plot(unit circle, '-');
   % plot(points, 0, '*');
   % plot(xs, 0, '+');
+  % plot convergence of the various methods (second subplot)
   semilogy([1:steps], ds, '-');
 
 end
 
 function x0 = rand_start(n)
-  if ~exist("n", "var")
-    n = 1;
   x = inf; y = inf;
   while (x^2 + y^2 >= 1)
     x = rand(); y = rand();
@@ -68,6 +62,18 @@ function x0 = rand_start(n)
     case 2
       x0 = [x, y];
   end
+end
+
+function D = weighted_distances(x, ps)
+  D = 0;
+  for i = 1:length(ps)
+    D = D + distance(x,ps(i))^2;
+  end
+  D = D / n;
+end
+
+function G = gradient_distances(x, ps)
+
 end
 
 function d = distance(x, y)
