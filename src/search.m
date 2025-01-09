@@ -1,8 +1,5 @@
 function [xs, ds, steps] = search(f,g,x0,opts)
 
-  %% define possible search types
-  possible_search_types = [{"sd" "Sd" "SD"};{"bb" "Bb" "BB"}];
-
   %% check standard arguments
   if ~exist("x0")
     error("no starting point provided.")
@@ -16,27 +13,23 @@ function [xs, ds, steps] = search(f,g,x0,opts)
   end
 
   %% check for search type specified by user
-  switch (opts.search_type)
-    case possible_search_types(1,:)
-      search_type = "sd";
-    case possible_search_types(2,:)
-      search_type = "bb";
-    otherwise
-      disp ("possible values are: ")
-      disp (possible_search_types)
-      error ("invalid search type")
-  end
+  search_type = opts.search_type;
 
   %% begin search and output results
-  tic;
   switch (search_type)
     case {"sd"}
-      [xs, ds, steps] = sd(f,g,x0,max_iter,tol)
+      tic;
+      [xs, ds, steps] = sd(f,g,x0)
+      toc
     case {"bb"}
-      [xs, ds, steps] = bb(f,g,x0,max_iter,tol)
+      tic;
+      [xs, ds, steps] = bb(f,g,x0)
+      toc
     otherwise
-      error ("invalid search type")
+      disp(...
+	    "Invalid search type.
+	    Possible search types are: sd, bb")
+      exit()
   end
-  toc
 end
 

@@ -15,7 +15,7 @@ function [x_stat, g_stat, steps] = sd(f, g, x0, max_iter, tol)
     x = [x, x(:,l) + alpha(:,l)*d(:,l)];
     d = [d,-g(x(:,l+1))];
     alpha = [alpha,armijo(f,g,x(:,l+1))];
-    l += 1;
+    l = l+1;
     if norm(d(:,l) - d(:,l-1)) < tol
       break
     end

@@ -20,11 +20,16 @@ function [x_stat, g_stat, steps] = bb(f, g, x0, max_iter, tol)
     s = x(:,l+1) - x(:,l);
     y = d(:,l+1) - d(:,l);
     %% compute next alpha
-    alpha = [alpha, (s' * s) / (s' * y)];
-    l+=1;
-    if norm(d(:,l) - d(:,l-1)) < tol
+    if mod(l, 2)
+      alpha = [alpha, (s' * s) / (s' * y)];
+    else
+      alpha = [alpha, (s' * y) / (y' * y)];
+    end
+    if norm(d(:,l) - d(:,l+1)) < tol
       break
     end
+    l = l+1;
+    % norm(s), norm(y)
   end
   steps = l;
   x_stat = x;
