@@ -1,5 +1,4 @@
-
-function b = poincarediskbaricenter(opts)
+function b = poincarediskbaricenter()
 % UNIPG ApNeA - A.A. 2024/25
 %
 % Method to search the baricenter of a Poincarè disk manifold
@@ -15,92 +14,97 @@ function b = poincarediskbaricenter(opts)
 % Numerical Approximation course at Unipg.
 % Original authors: Stefano Gigli, Vito Festa, Giuliana Mammone, Carmine diMatteo
 
+
   pkg load sqlite;
 
-  if ~exist("opts","var")
-    error("Invalid call to poincarediskbaricenter. Correct usage is:\n\n\
--- B = poincarediskbaricenter(struct(\"search_type\", \"...\"))\n\n\n");
-    return;
-  end
-
-  % random points on the unit square
-  db = sqlite('src/points.db');
+  % read database
+  db = sqlite('points.db');
   data_points = sqlread(db, "unit_circle_points");
   close(db);
 
-  %% initialize data structures
+  % initialize data structures
   points = [cell2mat(data_points.x),cell2mat(data_points.y)]';
   n = size(points,1);
   f = @(x) weighted_distances(x, points);
   g = @(x) gradient_distances(x, points);
+  A = posdef(n); b = rand(n,1);
   x0 = rand_start()
+
   if not(exist("max_iter"))
-    max_iter = 1000;
+    max_iter = 200;
   end
   if not(exist("tol"))
     tol = 10d-10;
   end
-  
-  % perform the searches
-  xs = []; ds = []; steps = [];
-  % sd w/ Armijo
-  [xs(1), ds(1), steps(1)] = sd(f,g,x0, max_iter, tol);
-  % bb with alternating steps
-  [xs(2), ds(2), steps(2)] = bb(f,g,x0, max_iter, tol);
-  % non-monotone line search with newton's
-  [xs(3), ds(3), steps(3)] = nmt(f,g,x0, max_iter, tol);
-  % non-monotone line search with wolfe's
-  ## [xs(4), ds(4), steps(4)] = wolfe(f,g,x0, max_iter, tol);
-  
-  % collect the results
-  bs = xs(:,steps)
 
-  % plot results
+  % plot of the points on the unit square
   arcs = linspace(0,2*pi,200)';
   circle_point = [cos(arcs), sin(arcs)];
-  % plot of the points on the unit square
   figure(1);
-  plot(circle_point(:,1), circle_point(:,2), '-');
-  plot(linspace(-1,1,100),zeros(100));
-  plot(points(:,1), points(:,2), '+', 'markersize', 5);
-  plot(xs(:,1)(1), xs(:,1)(2), '--', 'markersize', 2, 'green');
-  plot(xs(:,2)(1), xs(:,2)(2), '--', 'markersize', 2, 'red');
-  plot(xs(:,3)(1), xs(:,3)(2), '--', 'markersize', 2, 'blue');
-  ## plot(xs(:,2)(1), xs(:,2)(2), '--', 'markersize', 2, 'orange');
+  hold on;
+  plot(circle_point(:,1), circle_point(:,2), '-', 'Color', 'black');
+  ## plot(linspace(-1,1,100),zeros(100), '-', 'Color', 'red');
+  plot(points(1,:), points(2,:), '+', 'MarkerSize', 10, 'Color', 'red');
+
+  % perform the searches
+  xs = []; ds = []; steps = [], bs = [];
+  % sd w/ Armijo
+  [xs(:,[1,2]), ds(:,1), steps(1)] = sd(f,g,x0, max_iter, tol);
+  % bb with alternating steps
+  [xs(:,[3,4]), ds(:,2), steps(2)] = bb(f,g,x0, max_iter, tol);
+  % non-monotone line search with newton's
+  [xs(:,[5,6]), ds(:,3), steps(3)] = nmt(f,g,x0, max_iter, tol);
+  % non-monotone line search with wolfe's
+  [xs(:,[7,8]), ds(:,4), steps(4)] = wolfe(f,g,x0, max_iter, tol);
+
+  % collect the results
+  bs = xs(:,steps);
+
+  % plot results
+  plot(xs(:,1), xs(:,2), '--', 'MarkerSize', 5, 'Color', 'green');
+  plot(xs(:,3), xs(:,4), '--', 'MarkerSize', 5, 'Color', 'pink');
+  plot(xs(:,5), xs(:,6), '--', 'MarkerSize', 5, 'Color', 'blue');
+  plot(xs(:,7), xs(:,8), '--', 'MarkerSize', 5, 'Color', 'orange');
+
   % plot convergence of the various methods (second subplot)
   figure(2);
   semilogy([1:steps], ds(:,1), '-', 'green');
-  semilogy([1:steps], ds(:,2), '-', 'red');
+  semilogy([1:steps], ds(:,2), '-', 'pink');
   semilogy([1:steps], ds(:,3), '-', 'blue');
-  ## semilogy([1:steps], ds(:,4), '-', 'orange');
+  semilogy([1:steps], ds(:,4), '-', 'orange');
 end
 
-function x0 = rand_start(n)
+function x0 = rand_start()
   x = inf; y = inf;
   while (x^2 + y^2 >= 1)
     x = rand(); y = rand();
   end
-  switch (n)
-    case 1
-      x0 = x;
-    case 2
-      x0 = [x, y];
-  end
+  x0 = [x; y];
 end
 
 function D = weighted_distances(x, ps)
   % weighted sum of a fixed amount of points from the given x
   % C, (C, ... , C) |-> C
-  % 
+  %
   % it assumes equal mass for each point on the hyperbolic plane
   % argmin(n^-1 * sum(d(x,p_i)^2)) is solved at the baricenter B.
-  % 
+  %
   D = 0;
   n = length(ps);
   for i = 1:n
-    D = D + distance(x,ps(i))^2;
+    D = D + distance(x,ps(:,i))^2;
   end
   D = D / n;
+end
+
+function G = gradient_distances(x, ps)
+  G = 0;
+  n = length(ps);
+  de = @(x, p) partgdis(x(1,1), x(2,1), p(1,1), p(2,1));
+  for i = 1:n
+    G += 2*distance(x,ps(:,i))*de(x,ps(:,i));
+  end
+  G = G ./ n;
 end
 
 function d = distance(x, y)
@@ -117,16 +121,6 @@ function d = distance(x, y)
   d = acosh(1 + 2 * esqrdiff / (1 - modsqrx) / (1 - modsqry));
 end
 
-function G = gradient_distances(x, ps)
-  G = 0;
-  n = length(ps);
-  de = @(x, p) partgdis(x(1), x(2), p(1), p(2));
-  for i = 1:n
-    G = G + 2*distance(x,ps(i))*de(x,ps(i));
-  end
-  G = G ./ n;
-end
-
 function g = partgdis(x,y,p,q)
   % (R, R), (R, R) |-> (R, R)
   %
@@ -135,15 +129,15 @@ function g = partgdis(x,y,p,q)
   % define the single derivatives
   arccosarg = 1 + 2 * norm([x, y] - [p, q])^2 / ...
 		  (1 - norm([x, y])^2) / ...
-		  (1 - norm([p, q])^2);  
+		  (1 - norm([p, q])^2);
   dnormdiffx = (x - p) / sqrt((x - p)^2+(y - q)^2);
   dnormdiffy = (y - q) / sqrt((x - p)^2+(y - q)^2);
   dnormx = x / sqrt(x^2 - y^2);
   dnormy = y / sqrt(x^2 - y^2);
   % easier aliases
   orange = 1 / sqrt(arccosarg^2 - 1);
-  blue = [dnormdiffx, dnormdiffy];
-  pink = [dnormx, dnormy];
+  blue = [dnormdiffx; dnormdiffy];
+  pink = [dnormx; dnormy];
   n1 = norm([x,y]);
   n2 = norm([p,q]);
   middle = (1-n1^2) * (1-n2^2) - ...
@@ -171,14 +165,15 @@ function [xs, ds, steps] = sd(f,g,x0, max_iter, tol)
     % by which chosing α s.t. max[f(x + α*d) < f(x) - σ*d'*d*α]
     % achieves convergence to the result
     alpha = [alpha,armijo(f,g,x(:,l+1))];
+    printf("SD is taking: %d steps\n",l);
     l = l+1;
     if norm(d(:,l) - d(:,l-1)) < tol
       break
     end
   end
   steps = l;
-  x_stat = x;
-  g_stat = d;
+  xs = x;
+  ds = d;
 end
 
 function alpha = armijo(f,g,x,opts)
@@ -240,11 +235,12 @@ function [xs, ds, steps] = bb(f,g,x0, max_iter, tol)
     if norm(d(:,l) - d(:,l+1)) < tol
       break
     end
+    printf("BB is taking: %d steps\n",l);
     l = l+1;
   end
   steps = l;
-  x_stat = x;
-  g_stat = d;
+  xs = x;
+  ds = d;
 end
 
 function [xs, ds, steps] = nmt(f,g,x0, max_iter, tol)
@@ -273,7 +269,7 @@ function [xs, ds, steps] = nmt(f,g,x0, max_iter, tol)
     x = [x, x(:,l) + alpha*d(:,l)];
     d = [d, -g(x(:,l+1))];
     f = [f, f(x(:,l+1))];
-    
+
     % find new α by satisfying modified Newton's method
     % if such a step can no longer be decided scale α by σ
     newton_cond = 0;
@@ -286,7 +282,12 @@ function [xs, ds, steps] = nmt(f,g,x0, max_iter, tol)
     else
       alpha = alpha * sigma;
     end
+    printf("NMT is taking: %d steps\n",l);
+    l = l + 1;
   end
+  steps = l;
+  xs = x;
+  ds = d;
 end
 
 function [xs, ds, steps] = wolfe(f,g,x0, max_iter, tol)
@@ -306,14 +307,15 @@ function [xs, ds, steps] = wolfe(f,g,x0, max_iter, tol)
     % such that α = min[i) && ii)]. this α
     % achieves convergence to the result
     alpha = [alpha,modiarmijo(f,g,x(:,l+1))];
+    printf("Wolfe is taking: %d steps\n",l);
     l = l+1;
     if norm(d(:,l) - d(:,l-1)) < tol
       break
     end
   end
   steps = l;
-  x_stat = x;
-  g_stat = d;
+  xs = x;
+  ds = d;
 end
 
 function alpha = modiarmijo(f,g,x,opts)
