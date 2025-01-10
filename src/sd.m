@@ -23,4 +23,4 @@ function [x_stat, g_stat, steps] = sd(f, g, x0, max_iter, tol)
   steps = l;
   x_stat = x;
   g_stat = d;
-end
+ end

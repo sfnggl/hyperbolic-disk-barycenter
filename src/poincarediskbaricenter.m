@@ -1,10 +1,11 @@
+
 function b = poincarediskbaricenter(opts)
 % UNIPG ApNeA - A.A. 2024/25
 %
 % Method to search the baricenter of a Poincarè disk manifold
 % It assumes n = 2
 %
-% depending on which optimization method is preferred:
+% it uses and compares
 % -- steepest descent with Armijo's Method
 % -- barzilai-borwein method with Newton's Method
 % -- non-monotonic method with modified Newton's Method
@@ -149,7 +150,7 @@ function g = partgdis(x,y,p,q)
 	   norm([x,y] + 2*[p,q])^2 * (1-n2^2) * n1;
   bottom = ((1-n1^2)*(1-n2^2))^2;
   % compose (d/dx, d/dy)
-  g = (2 * orange) .* blue .* pink * bottom;
+  g = (2 * orange) * bottom * middle .* blue .* pink;
 end
 
 function [xs, ds, steps] = sd(f,g,x0, max_iter, tol)
@@ -284,6 +285,61 @@ function [xs, ds, steps] = nmt(f,g,x0, max_iter, tol)
       m(k) = min(m(k-1)+1, M);
     else
       alpha = alpha * sigma;
+    end
+  end
+end
+
+function [xs, ds, steps] = wolfe(f,g,x0, max_iter, tol)
+  % Steepest Descent with Armijo's Rule for inexact line search
+  %
+  % Iteratively reduces the step taken to update the x with the gradient
+  %
+  l = 1;
+  x = [x0];
+  d = [-g(x(:,l))];
+  alpha = [modiarmijo(f,g,x(:,l))];
+  %% Iterate up to a numerical bound or convergence
+  while norm(x(:,l)) < 1 && norm(d(:,l)) > tol && l < max_iter
+    x = [x, x(:,l) + alpha(:,l)*d(:,l)];
+    d = [d,-g(x(:,l+1))];
+    % find new alpha via modified Armijo's condition
+    % such that α = min[i) && ii)]. this α
+    % achieves convergence to the result
+    alpha = [alpha,modiarmijo(f,g,x(:,l+1))];
+    l = l+1;
+    if norm(d(:,l) - d(:,l-1)) < tol
+      break
+    end
+  end
+  steps = l;
+  x_stat = x;
+  g_stat = d;
+end
+
+function alpha = modiarmijo(f,g,x,opts)
+  % modified armijo's condition
+  %
+  % using two bounds 0 < c1 < c2 < 1, an adequate
+  % step size α which holds:
+  % i) f(x - α*g) ≤ f(k) -c1*α*g'*f'(x)
+  % ii) -g'*f'(x - α*g) ≤ c2*g'*f'(x)
+  % reduces the objective function f
+  %
+  if not(exist("opts"))
+    % Nocedal, Jorge; Wright, Stephen (1999). Numerical Optimization. p. 38.
+    c1 = 10d-4;
+    c2 = 0.9;
+  else
+    c1 = opts.c1;
+    c2 = opts.c2;
+  end
+  assert(0 < c1 && c1 < c2 && c2 < 1);
+  alpha = 1;
+  p = -g(x);
+  while f(x + alpha*p) > f(x) + c1*alpha*p'*g(x) && -p'*g(x + alpha*p) <= -c2*p'*g(x)
+    alpha++;
+    if m > 100
+      break
     end
   end
 end

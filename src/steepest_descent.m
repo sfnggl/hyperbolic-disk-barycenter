@@ -14,8 +14,8 @@ function [x_stat, g_stat] = steepest_descent(f, g, x0, max_iter, tol)
     %% compute gradient
     x = [x, x(:,l) + alpha(:,l)*d(:,l)];
     d = [d,-g(x(:,l+1))];
-    alpha = [alpha,armijo(f,g,x(:,l+1))];
-    l += 1;
+    alpha = [alpha,armijo(f,g,x(:,l+1))]
+    l += 1
     if norm(d(:,l) - d(:,l-1)) < tol
       break
     end

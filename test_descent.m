@@ -4,7 +4,7 @@ addpath(genpath('./src'))
 
 search_type = "bb"
 max_iter = 1000;
-n = 3;
+n = 100;
 % Generate a positive-definite matrix
 A = posdef(n);
 assert(eig(A) > 0);
