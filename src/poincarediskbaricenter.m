@@ -14,7 +14,9 @@ function b = poincarediskbaricenter()
 % Numerical Approximation course at Unipg.
 % Original authors: Stefano Gigli, Vito Festa, Giuliana Mammone, Carmine diMatteo
 
-
+  clc;
+  clear all;
+  clf;
   pkg load sqlite;
 
   % read database
@@ -28,10 +30,11 @@ function b = poincarediskbaricenter()
   f = @(x) weighted_distances(x, points);
   g = @(x) gradient_distances(x, points);
   A = posdef(n); b = rand(n,1);
-  x0 = rand_start()
+  % x0 = rand_start()
+  x0 = [0;0]
 
   if not(exist("max_iter"))
-    max_iter = 200;
+    max_iter = 100;
   end
   if not(exist("tol"))
     tol = 10d-10;
@@ -39,39 +42,79 @@ function b = poincarediskbaricenter()
 
   % plot of the points on the unit square
   arcs = linspace(0,2*pi,200)';
-  circle_point = [cos(arcs), sin(arcs)];
-  figure(1);
-  hold on;
-  plot(circle_point(:,1), circle_point(:,2), '-', 'Color', 'black');
-  ## plot(linspace(-1,1,100),zeros(100), '-', 'Color', 'red');
-  plot(points(1,:), points(2,:), '+', 'MarkerSize', 10, 'Color', 'red');
+  circle_point = [cos(arcs), sin(arcs)]';
 
   % perform the searches
-  xs = []; ds = []; steps = [], bs = [];
-  % sd w/ Armijo
-  [xs(:,[1,2]), ds(:,1), steps(1)] = sd(f,g,x0, max_iter, tol);
-  % bb with alternating steps
-  [xs(:,[3,4]), ds(:,2), steps(2)] = bb(f,g,x0, max_iter, tol);
-  % non-monotone line search with newton's
-  [xs(:,[5,6]), ds(:,3), steps(3)] = nmt(f,g,x0, max_iter, tol);
-  % non-monotone line search with wolfe's
-  [xs(:,[7,8]), ds(:,4), steps(4)] = wolfe(f,g,x0, max_iter, tol);
+  xs = zeros(2*4, max_iter)';
+  ds = zeros(2*4, max_iter)';
+  ss = zeros(4, 1);
+  bs = zeros(4, 1);
+  steps = []; derivs = [];
 
-  % collect the results
-  bs = xs(:,steps);
+  [steps, derivs, ss(1)] = sd(f,g,x0,max_iter,tol);
+  xs([1:ss(1)],[1,2]) = steps';
+  ds([1:ss(1)],[1,2]) = derivs';
+  [steps, derivs, ss(2)] = bb(f,g,x0,max_iter,tol);
+  xs([1:ss(2)],[3,4]) = steps';
+  ds([1:ss(2)],[3,4]) = derivs';
+  [steps, derivs, ss(3)] = nmt(f,g,x0,max_iter,tol);
+  xs([1:ss(3)],[5,6]) = steps';
+  ds([1:ss(3)],[5,6]) = derivs';
+  [steps, derivs, ss(4)] = wolfe(f,g,x0,max_iter,tol);
+  xs([1:ss(4)],[7,8]) = steps';
+  ds([1:ss(4)],[7,8]) = derivs';
 
-  % plot results
-  plot(xs(:,1), xs(:,2), '--', 'MarkerSize', 5, 'Color', 'green');
-  plot(xs(:,3), xs(:,4), '--', 'MarkerSize', 5, 'Color', 'pink');
-  plot(xs(:,5), xs(:,6), '--', 'MarkerSize', 5, 'Color', 'blue');
-  plot(xs(:,7), xs(:,8), '--', 'MarkerSize', 5, 'Color', 'orange');
+  figure(1);
+  hold on;
+  subplot(1,4,1)
+  plot([1:ss(1)], vecnorm(ds(:,[1,2]),2,2)(1:ss(1)), '-', 'LineWidth', 2, 'DisplayName', 'Steepest Descent', 'Color', 'green');
+  legend();
+  subplot(1,4,2)
+  plot([1:ss(2)], vecnorm(ds(:,[3,4]),2,2)(1:ss(2)), '-', 'LineWidth', 2, 'DisplayName', 'Barzilai-Borwein', 'Color', 'red');
+  legend();
+  subplot(1,4,3)
+  plot([1:ss(3)], vecnorm(ds(:,[5,6]),2,2)(1:ss(3)), '-', 'LineWidth', 2, 'DisplayName', 'Non Monotonic Search', 'Color', 'blue');
+  legend();
+  subplot(1,4,4)
+  plot([1:ss(4)], vecnorm(ds(:,[7,8]),2,2)(1:ss(4)), '-', 'LineWidth', 2, 'DisplayName', "Wolfe\'s Condition", 'Color', 'magenta');
+  legend();
+  hold off;
 
-  % plot convergence of the various methods (second subplot)
-  figure(2);
-  semilogy([1:steps], ds(:,1), '-', 'green');
-  semilogy([1:steps], ds(:,2), '-', 'pink');
-  semilogy([1:steps], ds(:,3), '-', 'blue');
-  semilogy([1:steps], ds(:,4), '-', 'orange');
+  ## figure(2);
+  ## subplot(2,4,1)
+  ## hold on;
+  ## plot(circle_point(1,:), circle_point(2,:), '--', 'Color', 'black');
+  ## plot(points(1,:), points(2,:), '+', 'MarkerSize', 10, 'Color', 'red');
+  ## plot(xs(:,1), xs(:,2), '--', 'MarkerSize', 10, 'Color', 'green');
+  ## hold off;
+
+  ## subplot(2,4,2)
+  ## hold on;
+  ## plot(circle_point(1,:), circle_point(2,:), '--', 'Color', 'black');
+  ## plot(points(1,:), points(2,:), '+', 'MarkerSize', 10, 'Color', 'red');
+  ## plot(xs(:,3), xs(:,4), '--', 'MarkerSize', 10, 'Color', 'red');
+  ## hold off;
+
+  ## subplot(2,4,3)
+  ## hold on;
+  ## plot(circle_point(1,:), circle_point(2,:), '--', 'Color', 'black');
+  ## plot(points(1,:), points(2,:), '+', 'MarkerSize', 10, 'Color', 'red');
+  ## plot(xs(:,5), xs(:,6), '--', 'MarkerSize', 10, 'Color', 'blue');
+  ## hold off;
+
+  ## subplot(2,4,4)
+  ## hold on;
+  ## plot(circle_point(1,:), circle_point(2,:), '--', 'Color', 'black');
+  ## plot(points(1,:), points(2,:), '+', 'MarkerSize', 10, 'Color', 'red');
+  ## plot(xs(:,7), xs(:,8), '--', 'MarkerSize', 10, 'Color', 'magenta');
+  ## hold off;
+
+end
+
+function [x,d,s] = dummy(n)
+  x = randn(n,2);
+  d = randn(n,2);
+  s = n;
 end
 
 function x0 = rand_start()
@@ -100,11 +143,21 @@ end
 function G = gradient_distances(x, ps)
   G = 0;
   n = length(ps);
-  de = @(x, p) partgdis(x(1,1), x(2,1), p(1,1), p(2,1));
   for i = 1:n
-    G += 2*distance(x,ps(:,i))*de(x,ps(:,i));
+    dis = distance(x,ps(:,i));
+    de = partial_derivative(x,ps(:,i))(:,1);
+    G += 2 / n^2 * dis * de;
   end
-  G = G ./ n;
+end
+
+function d = partial_derivative(z1, z2)
+  g = @(z1, z2) (2 * norm(z1 - z2,1)^2);
+  h = @(z1, z2) ((1 - norm(z1,1) ^2)  * (1 - norm(z2,1) ^2));
+  f = @(z1, z2) (1 + g(z1,z2)  / h(z1,z2));
+  dg = [4 * (z1 - z2), 4 * (z2 - z1)]; % (d/d(z1) g, d/d(z2) g)
+  dh = [z1  * (1 - norm(z2,1) ^2) * (-2), z2  * (1 - norm(z1,1) ^2) * (-2)]; % (d/d(z1) h, d/d(z2) h)
+  df = (h(z1,z2)  * dg - g(z1,z2)  * dh)  / h(z1,z2) ^2; % (d/d(z1) f, d/d(z2) f)
+  d = df / sqrt(f(z1,z2)  ^ 2 - 1);
 end
 
 function d = distance(x, y)
@@ -113,38 +166,12 @@ function d = distance(x, y)
   %
   % derived from the equality which holds that
   % for each pair of points x,y in D, hyperbolic plane of n-dimension
-  % norm(x-y)^2 / (1 - norm(x)^2) / (1 - norm(x)^2 = .5 * (cosh(d(x,y) - 1))
+  % norm(x-y)^2 / (1 - norm(x)^2) / (1 - norm(x)^2 =  5 * (cosh(d(x,y) - 1))
   %
-  modsqrx = norm(x)^2;
-  modsqry = norm(y)^2;
-  esqrdiff = norm(x-y)^2;
+  modsqrx = norm(x,1) ^ 2;
+  modsqry = norm(y,1) ^ 2;
+  esqrdiff = norm(x-y,1) ^ 2;
   d = acosh(1 + 2 * esqrdiff / (1 - modsqrx) / (1 - modsqry));
-end
-
-function g = partgdis(x,y,p,q)
-  % (R, R), (R, R) |-> (R, R)
-  %
-  % the very composite gradient of the distance function.
-  %
-  % define the single derivatives
-  arccosarg = 1 + 2 * norm([x, y] - [p, q])^2 / ...
-		  (1 - norm([x, y])^2) / ...
-		  (1 - norm([p, q])^2);
-  dnormdiffx = (x - p) / sqrt((x - p)^2+(y - q)^2);
-  dnormdiffy = (y - q) / sqrt((x - p)^2+(y - q)^2);
-  dnormx = x / sqrt(x^2 - y^2);
-  dnormy = y / sqrt(x^2 - y^2);
-  % easier aliases
-  orange = 1 / sqrt(arccosarg^2 - 1);
-  blue = [dnormdiffx; dnormdiffy];
-  pink = [dnormx; dnormy];
-  n1 = norm([x,y]);
-  n2 = norm([p,q]);
-  middle = (1-n1^2) * (1-n2^2) - ...
-	   norm([x,y] + 2*[p,q])^2 * (1-n2^2) * n1;
-  bottom = ((1-n1^2)*(1-n2^2))^2;
-  % compose (d/dx, d/dy)
-  g = (2 * orange) * bottom * middle .* blue .* pink;
 end
 
 function [xs, ds, steps] = sd(f,g,x0, max_iter, tol)
@@ -157,19 +184,22 @@ function [xs, ds, steps] = sd(f,g,x0, max_iter, tol)
   d = [-g(x(:,l))];
   alpha = [armijo(f,g,x(:,l))];
   %% Iterate up to a numerical bound or convergence
-  while norm(x(:,l)) < 1 && norm(d(:,l)) > tol && l < max_iter
+  while norm(d(:,l)) > tol && l < max_iter
     % compute gradient
-    x = [x, x(:,l) + alpha(:,l)*d(:,l)];
+    x_next = x(:,l) + alpha(:,l)*d(:,l);
+    if (norm(x_next,1) >= 1)
+      break
+    end
+    x = [x, x_next];
     d = [d,-g(x(:,l+1))];
     % find new alpha via Armijo's method
     % by which chosing α s.t. max[f(x + α*d) < f(x) - σ*d'*d*α]
     % achieves convergence to the result
-    alpha = [alpha,armijo(f,g,x(:,l+1))];
-    printf("SD is taking: %d steps\n",l);
-    l = l+1;
-    if norm(d(:,l) - d(:,l-1)) < tol
+    if (norm(d(:,l+1) - d(:,l)) < tol)
       break
     end
+    alpha = [alpha,armijo(f,g,x(:,l+1))];
+    l = l+1;
   end
   steps = l;
   xs = x;
@@ -188,7 +218,7 @@ function alpha = armijo(f,g,x,opts)
   %
   %
   if not(exist("opts"))
-    abar = 1;
+    abar = 0.1;
     beta = 0.4;
     sigma = 0.9;
   else
@@ -220,22 +250,25 @@ function [xs, ds, steps] = bb(f,g,x0, max_iter, tol)
   l = 1;
   x = [x0];
   d = [-g(x0)];
-  alpha = [1];
-  while norm(d(:,l)) < 1 && norm(d(:,l)) > tol && l < max_iter
-    x = [x, x(:,l) - alpha(l)*d(:,l)];
-    d = [d, -g(x(:,l+1))];
+  alpha = [0.1];
+  while norm(d(:,l)) > tol && l < max_iter
+    x_next = x(:,l) + alpha(:,l)*d(:,l);
+    if (norm(x_next,1) >= 1)
+      break
+    end
+    x = [x, x_next];
+    d = [d,-g(x(:,l+1))];
     s = x(:,l+1) - x(:,l);
     y = d(:,l+1) - d(:,l);
+    if norm(d(:,l) - d(:,l+1)) < tol
+      break
+    end
     %% compute next α
     if mod(l, 2)
       alpha = [alpha, (s' * s) / (s' * y)];
     else
       alpha = [alpha, (s' * y) / (y' * y)];
     end
-    if norm(d(:,l) - d(:,l+1)) < tol
-      break
-    end
-    printf("BB is taking: %d steps\n",l);
     l = l+1;
   end
   steps = l;
@@ -255,26 +288,31 @@ function [xs, ds, steps] = nmt(f,g,x0, max_iter, tol)
   %
   M = 10d3;
   gamma = .5;
-  sigma = .9
-  alpha = 1;
+  sigma = .9;
+  alpha = .1;
   theta = 1;
-
   l = 1;
+  k = 1;
   x = [x0];
   d = [-g(x0)];
-  f = [f(x0)];
-  m = [0];
-
-  while norm(d(:,l)) < 1 && norm(d(:,l)) > tol && l < max_iter
-    x = [x, x(:,l) + alpha*d(:,l)];
-    d = [d, -g(x(:,l+1))];
-    f = [f, f(x(:,l+1))];
-
+  t = [f(x0)];
+  m = [1];
+  while norm(d(:,l)) > tol && l < max_iter
+    x_next = x(:,l) + alpha*d(:,l);
+    if (norm(x_next,1) >= 1)
+      break
+    end
+    x = [x, x_next];
+    d = [d,-g(x(:,l+1))];
+    t = [t, f(x(:,l+1))];
+    if  norm(d(:,l) - d(:,l+1)) < tol
+      break
+    end
     % find new α by satisfying modified Newton's method
     % if such a step can no longer be decided scale α by σ
     newton_cond = 0;
-    for i = 1:m(:,l)
-      newton_cond += (f(:,l+1) <= f(:,i) - gamma * alpha * g(:,l)' * g(:,l));
+    for i = 1:m(k)
+      newton_cond += (t(:,l+1) <= t(:,i) - gamma * alpha * d(:,l)' * d(:,l));
     end
     if (newton_cond)
       k = k + 1;
@@ -282,7 +320,6 @@ function [xs, ds, steps] = nmt(f,g,x0, max_iter, tol)
     else
       alpha = alpha * sigma;
     end
-    printf("NMT is taking: %d steps\n",l);
     l = l + 1;
   end
   steps = l;
@@ -300,18 +337,21 @@ function [xs, ds, steps] = wolfe(f,g,x0, max_iter, tol)
   d = [-g(x(:,l))];
   alpha = [modiarmijo(f,g,x(:,l))];
   %% Iterate up to a numerical bound or convergence
-  while norm(x(:,l)) < 1 && norm(d(:,l)) > tol && l < max_iter
-    x = [x, x(:,l) + alpha(:,l)*d(:,l)];
+  while norm(d(:,l)) > tol && l < max_iter
+    x_next = x(:,l) + alpha(:,l)*d(:,l);
+    if (norm(x_next,1) >= 1)
+      break
+    end
+    x = [x, x_next];
     d = [d,-g(x(:,l+1))];
+    if (norm(d(:,l+1) - d(:,l)) < tol)
+      break
+    end
     % find new alpha via modified Armijo's condition
     % such that α = min[i) && ii)]. this α
     % achieves convergence to the result
     alpha = [alpha,modiarmijo(f,g,x(:,l+1))];
-    printf("Wolfe is taking: %d steps\n",l);
     l = l+1;
-    if norm(d(:,l) - d(:,l-1)) < tol
-      break
-    end
   end
   steps = l;
   xs = x;
@@ -340,7 +380,7 @@ function alpha = modiarmijo(f,g,x,opts)
   p = -g(x);
   while f(x + alpha*p) > f(x) + c1*alpha*p'*g(x) && -p'*g(x + alpha*p) <= -c2*p'*g(x)
     alpha++;
-    if m > 100
+    if alpha > 100
       break
     end
   end
