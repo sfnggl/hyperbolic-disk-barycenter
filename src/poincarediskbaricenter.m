@@ -195,7 +195,7 @@ function [xs, ds, steps] = sd(f,g,x0, max_iter, tol)
     % find new alpha via Armijo's method
     % by which chosing α s.t. max[f(x + α*d) < f(x) - σ*d'*d*α]
     % achieves convergence to the result
-    if (norm(d(:,l+1) - d(:,l)) < tol)
+    if norm(d(:,l+1) - d(:,l)) <= tol
       break
     end
     alpha = [alpha,armijo(f,g,x(:,l+1))];
@@ -260,15 +260,11 @@ function [xs, ds, steps] = bb(f,g,x0, max_iter, tol)
     d = [d,-g(x(:,l+1))];
     s = x(:,l+1) - x(:,l);
     y = d(:,l+1) - d(:,l);
-    if norm(d(:,l) - d(:,l+1)) < tol
+    if norm(d(:,l+1) - d(:,l)) <= tol
       break
     end
     %% compute next α
-    if mod(l, 2)
-      alpha = [alpha, (s' * s) / (s' * y)];
-    else
-      alpha = [alpha, (s' * y) / (y' * y)];
-    end
+    alpha = [alpha, -1 * (s' * s) / (s' * y)];
     l = l+1;
   end
   steps = l;
@@ -305,7 +301,7 @@ function [xs, ds, steps] = nmt(f,g,x0, max_iter, tol)
     x = [x, x_next];
     d = [d,-g(x(:,l+1))];
     t = [t, f(x(:,l+1))];
-    if  norm(d(:,l) - d(:,l+1)) < tol
+    if norm(d(:,l+1) - d(:,l)) < tol
       break
     end
     % find new α by satisfying modified Newton's method
@@ -344,7 +340,7 @@ function [xs, ds, steps] = wolfe(f,g,x0, max_iter, tol)
     end
     x = [x, x_next];
     d = [d,-g(x(:,l+1))];
-    if (norm(d(:,l+1) - d(:,l)) < tol)
+    if norm(d(:,l+1) - d(:,l)) <= tol
       break
     end
     % find new alpha via modified Armijo's condition
@@ -376,7 +372,7 @@ function alpha = modiarmijo(f,g,x,opts)
     c2 = opts.c2;
   end
   assert(0 < c1 && c1 < c2 && c2 < 1);
-  alpha = 1;
+  alpha = .1;
   p = -g(x);
   while f(x + alpha*p) > f(x) + c1*alpha*p'*g(x) && -p'*g(x + alpha*p) <= -c2*p'*g(x)
     alpha++;
