@@ -33,6 +33,7 @@ function b = poincarediskbaricenter()
   % x0 = rand_start()
   x0 = [0;0]
 
+  % initialize parameters
   if not(exist("max_iter"))
     max_iter = 100;
   end
@@ -64,50 +65,25 @@ function b = poincarediskbaricenter()
   xs([1:ss(4)],[7,8]) = steps';
   ds([1:ss(4)],[7,8]) = derivs';
 
+  % plot
   figure(1);
   hold on;
-  subplot(1,4,1)
+  ## subplot(1,4,1)
   plot([1:ss(1)], vecnorm(ds(:,[1,2]),2,2)(1:ss(1)), '-', 'LineWidth', 2, 'DisplayName', 'Steepest Descent', 'Color', 'green');
   legend();
-  subplot(1,4,2)
+  figure(2);
+  ## subplot(1,4,2)
   plot([1:ss(2)], vecnorm(ds(:,[3,4]),2,2)(1:ss(2)), '-', 'LineWidth', 2, 'DisplayName', 'Barzilai-Borwein', 'Color', 'red');
   legend();
-  subplot(1,4,3)
+  figure(3);
+  ## subplot(1,4,3)
   plot([1:ss(3)], vecnorm(ds(:,[5,6]),2,2)(1:ss(3)), '-', 'LineWidth', 2, 'DisplayName', 'Non Monotonic Search', 'Color', 'blue');
   legend();
-  subplot(1,4,4)
+  figure(4);
+  ## subplot(1,4,4)
   plot([1:ss(4)], vecnorm(ds(:,[7,8]),2,2)(1:ss(4)), '-', 'LineWidth', 2, 'DisplayName', "Wolfe\'s Condition", 'Color', 'magenta');
   legend();
   hold off;
-
-  ## figure(2);
-  ## subplot(2,4,1)
-  ## hold on;
-  ## plot(circle_point(1,:), circle_point(2,:), '--', 'Color', 'black');
-  ## plot(points(1,:), points(2,:), '+', 'MarkerSize', 10, 'Color', 'red');
-  ## plot(xs(:,1), xs(:,2), '--', 'MarkerSize', 10, 'Color', 'green');
-  ## hold off;
-
-  ## subplot(2,4,2)
-  ## hold on;
-  ## plot(circle_point(1,:), circle_point(2,:), '--', 'Color', 'black');
-  ## plot(points(1,:), points(2,:), '+', 'MarkerSize', 10, 'Color', 'red');
-  ## plot(xs(:,3), xs(:,4), '--', 'MarkerSize', 10, 'Color', 'red');
-  ## hold off;
-
-  ## subplot(2,4,3)
-  ## hold on;
-  ## plot(circle_point(1,:), circle_point(2,:), '--', 'Color', 'black');
-  ## plot(points(1,:), points(2,:), '+', 'MarkerSize', 10, 'Color', 'red');
-  ## plot(xs(:,5), xs(:,6), '--', 'MarkerSize', 10, 'Color', 'blue');
-  ## hold off;
-
-  ## subplot(2,4,4)
-  ## hold on;
-  ## plot(circle_point(1,:), circle_point(2,:), '--', 'Color', 'black');
-  ## plot(points(1,:), points(2,:), '+', 'MarkerSize', 10, 'Color', 'red');
-  ## plot(xs(:,7), xs(:,8), '--', 'MarkerSize', 10, 'Color', 'magenta');
-  ## hold off;
 
 end
 
@@ -130,7 +106,7 @@ function D = weighted_distances(x, ps)
   % C, (C, ... , C) |-> C
   %
   % it assumes equal mass for each point on the hyperbolic plane
-  % argmin(n^-1 * sum(d(x,p_i)^2)) is solved at the baricenter B.
+  % argmin(n^-1 * sum(d(x,p_i)^2)) is solved for the baricenter x_b.
   %
   D = 0;
   n = length(ps);
@@ -141,6 +117,16 @@ function D = weighted_distances(x, ps)
 end
 
 function G = gradient_distances(x, ps)
+  % derivative of the weighted sums
+  % C, (C, ... , C) |-> C
+  %
+  % it sums the partial derivative of the point
+  % with respect of each point
+  % it uses only the first component as
+  % the direction for the next iteration
+  % 
+  % it's an highly unstable function for points
+  % "a little too far" from the cluster of points
   G = 0;
   n = length(ps);
   for i = 1:n
@@ -151,6 +137,10 @@ function G = gradient_distances(x, ps)
 end
 
 function d = partial_derivative(z1, z2)
+  % the 2-dimensional gradient
+  % with respect to the two points
+  % C, C |-> C
+  %
   g = @(z1, z2) (2 * norm(z1 - z2,1)^2);
   h = @(z1, z2) ((1 - norm(z1,1) ^2)  * (1 - norm(z2,1) ^2));
   f = @(z1, z2) (1 + g(z1,z2)  / h(z1,z2));
@@ -176,8 +166,8 @@ end
 
 function [xs, ds, steps] = sd(f,g,x0, max_iter, tol)
   % Steepest Descent with Armijo's Rule for inexact line search
-  %
-  % Iteratively reduces the step taken to update the x with the gradient
+  % It uses a small starting α to offset the rapidly varying derivative
+  % Iteratively increases the step taken to update the x with the gradient
   %
   l = 1;
   x = [x0];
@@ -241,8 +231,7 @@ end
 function [xs, ds, steps] = bb(f,g,x0, max_iter, tol)
   % Barzilai-Borwein with Big-Small step
   %
-  % alternates between to stable variations
-  % of the step size to take, uses second-order information
+  % uses second-order information
   % by means of Newton's Method, whereby iterating
   % x(k+1) = x(k) − (F(k))^−1*g(k)
   % founds a rapid solution
@@ -324,7 +313,7 @@ function [xs, ds, steps] = nmt(f,g,x0, max_iter, tol)
 end
 
 function [xs, ds, steps] = wolfe(f,g,x0, max_iter, tol)
-  % Steepest Descent with Armijo's Rule for inexact line search
+  % Steepest Descent with modified Armijo's Rule for inexact line search
   %
   % Iteratively reduces the step taken to update the x with the gradient
   %
@@ -344,7 +333,7 @@ function [xs, ds, steps] = wolfe(f,g,x0, max_iter, tol)
       break
     end
     % find new alpha via modified Armijo's condition
-    % such that α = min[i) && ii)]. this α
+    % such that α
     % achieves convergence to the result
     alpha = [alpha,modiarmijo(f,g,x(:,l+1))];
     l = l+1;
