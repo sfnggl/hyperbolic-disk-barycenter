@@ -1,4 +1,4 @@
-function b = poincarediskbaricenter()
+function b = poincarediskbaricenter(xs)
 % UNIPG ApNeA - A.A. 2024/25
 %
 % Method to search the baricenter of a Poincarè disk manifold
@@ -14,76 +14,85 @@ function b = poincarediskbaricenter()
 % Numerical Approximation course at Unipg.
 % Original authors: Stefano Gigli, Vito Festa, Giuliana Mammone, Carmine diMatteo
 
-  clc;
-  clear all;
-  clf;
-  pkg load sqlite;
-
-  % read database
-  db = sqlite('points.db');
-  data_points = sqlread(db, "unit_circle_points");
-  close(db);
+  points = xs;
 
   % initialize data structures
-  points = [cell2mat(data_points.x),cell2mat(data_points.y)]';
   n = size(points,1);
   f = @(x) weighted_distances(x, points);
   g = @(x) gradient_distances(x, points);
-  A = posdef(n); b = rand(n,1);
-  % x0 = rand_start()
+  A = posdef(n);
+
   x0 = [0;0]
 
   % initialize parameters
   if not(exist("max_iter"))
-    max_iter = 100;
+    max_iter = 500;
   end
   if not(exist("tol"))
     tol = 10d-10;
   end
 
-  % plot of the points on the unit square
-  arcs = linspace(0,2*pi,200)';
-  circle_point = [cos(arcs), sin(arcs)]';
-
   % perform the searches
   xs = zeros(2*4, max_iter)';
   ds = zeros(2*4, max_iter)';
   ss = zeros(4, 1);
-  bs = zeros(4, 1);
+  bs = zeros(4, 2);
   steps = []; derivs = [];
 
-  [steps, derivs, ss(1)] = sd(f,g,x0,max_iter,tol);
+  [steps, derivs, ss(1)] = gd(f,g,x0,max_iter,tol);
   xs([1:ss(1)],[1,2]) = steps';
   ds([1:ss(1)],[1,2]) = derivs';
+  bs(1,:) = xs(ss(1),[1:2]);
   [steps, derivs, ss(2)] = bb(f,g,x0,max_iter,tol);
   xs([1:ss(2)],[3,4]) = steps';
   ds([1:ss(2)],[3,4]) = derivs';
+  bs(2,:) = xs(ss(2),[3:4]);
   [steps, derivs, ss(3)] = nmt(f,g,x0,max_iter,tol);
   xs([1:ss(3)],[5,6]) = steps';
   ds([1:ss(3)],[5,6]) = derivs';
+  bs(3,:) = xs(ss(3),[5:6]);
   [steps, derivs, ss(4)] = wolfe(f,g,x0,max_iter,tol);
   xs([1:ss(4)],[7,8]) = steps';
   ds([1:ss(4)],[7,8]) = derivs';
+  bs(4,:) = xs(ss(4),[7:8]);
 
   % plot
   figure(1);
   hold on;
   ## subplot(1,4,1)
-  plot([1:ss(1)], vecnorm(ds(:,[1,2]),2,2)(1:ss(1)), '-', 'LineWidth', 2, 'DisplayName', 'Steepest Descent', 'Color', 'green');
+  plot([1:ss(1)], vecnorm(ds(:,[1,2]),2,2)(1:ss(1)), '-', 'LineWidth', 2, 'DisplayName', 'Gradient Descent', 'Color', 'green');
+  title('Gradient Descent', 'FontSize', 18);
+  xlabel('Steps', 'FontSize', 15);
+  ylabel('||G||', 'FontSize', 15);
+  set(gca, 'FontSize', 12);
   legend();
   figure(2);
   ## subplot(1,4,2)
   plot([1:ss(2)], vecnorm(ds(:,[3,4]),2,2)(1:ss(2)), '-', 'LineWidth', 2, 'DisplayName', 'Barzilai-Borwein', 'Color', 'red');
+  title('Barzilai-Borwein', 'FontSize', 18);
+  xlabel('Steps', 'FontSize', 15);
+  ylabel('||G||', 'FontSize', 15);
+  set(gca, 'FontSize', 12);
   legend();
   figure(3);
   ## subplot(1,4,3)
   plot([1:ss(3)], vecnorm(ds(:,[5,6]),2,2)(1:ss(3)), '-', 'LineWidth', 2, 'DisplayName', 'Non Monotonic Search', 'Color', 'blue');
+  title('Non-Monotonic Search', 'FontSize', 18);
+  xlabel('Steps', 'FontSize', 15);
+  ylabel('||G||', 'FontSize', 15);
+  set(gca, 'FontSize', 12);
   legend();
   figure(4);
   ## subplot(1,4,4)
-  plot([1:ss(4)], vecnorm(ds(:,[7,8]),2,2)(1:ss(4)), '-', 'LineWidth', 2, 'DisplayName', "Wolfe\'s Condition", 'Color', 'magenta');
+  plot([1:ss(4)], vecnorm(ds(:,[7,8]),2,2)(1:ss(4)), '-', 'LineWidth', 2, 'DisplayName', "Wolfe\'s Conditions", 'Color', 'magenta');
+  title("Wolfe\'s Conditions", 'FontSize', 18);
+  xlabel('Steps', 'FontSize', 15);
+  ylabel('||G||', 'FontSize', 15);
+  set(gca, 'FontSize', 12);
   legend();
   hold off;
+
+  b = bs;
 
 end
 
@@ -91,14 +100,6 @@ function [x,d,s] = dummy(n)
   x = randn(n,2);
   d = randn(n,2);
   s = n;
-end
-
-function x0 = rand_start()
-  x = inf; y = inf;
-  while (x^2 + y^2 >= 1)
-    x = rand(); y = rand();
-  end
-  x0 = [x; y];
 end
 
 function D = weighted_distances(x, ps)
@@ -124,15 +125,15 @@ function G = gradient_distances(x, ps)
   % with respect of each point
   % it uses only the first component as
   % the direction for the next iteration
-  % 
+  %
   % it's an highly unstable function for points
   % "a little too far" from the cluster of points
   G = 0;
   n = length(ps);
   for i = 1:n
     dis = distance(x,ps(:,i));
-    de = partial_derivative(x,ps(:,i))(:,1);
-    G += 2 / n^2 * dis * de;
+    de = partial_derivative2(x,ps(:,i))(:,1);
+    G += 2 / n .* dis .* de;
   end
 end
 
@@ -143,11 +144,17 @@ function d = partial_derivative(z1, z2)
   %
   g = @(z1, z2) (2 * norm(z1 - z2,1)^2);
   h = @(z1, z2) ((1 - norm(z1,1) ^2)  * (1 - norm(z2,1) ^2));
-  f = @(z1, z2) (1 + g(z1,z2)  / h(z1,z2));
+  f = @(z1, z2) (1 + g(z1,z2) / h(z1,z2));
   dg = [4 * (z1 - z2), 4 * (z2 - z1)]; % (d/d(z1) g, d/d(z2) g)
   dh = [z1  * (1 - norm(z2,1) ^2) * (-2), z2  * (1 - norm(z1,1) ^2) * (-2)]; % (d/d(z1) h, d/d(z2) h)
-  df = (h(z1,z2)  * dg - g(z1,z2)  * dh)  / h(z1,z2) ^2; % (d/d(z1) f, d/d(z2) f)
-  d = df / sqrt(f(z1,z2)  ^ 2 - 1);
+  df = (h(z1,z2) * dg - g(z1,z2) * dh)  / h(z1,z2) ^2; % (d/d(z1) f, d/d(z2) f)
+  d = df / sqrt(f(z1,z2) ^ 2 - 1);
+end
+
+function d = partial_derivative2(u, v)
+  d = 4 / ...
+  ((1 - norm(v)^2) * sqrt((1 + 2 / ((1 - norm(u)^2)*(1 - norm(v)^2)) * norm(u - v))^2 - 1)) * ...
+  (((norm(v)^2 - 2 * (u' * v) + 1) * u) / (1 - norm(u)^2)^2 - v / (1 - norm(u)^2));
 end
 
 function d = distance(x, y)
@@ -164,8 +171,8 @@ function d = distance(x, y)
   d = acosh(1 + 2 * esqrdiff / (1 - modsqrx) / (1 - modsqry));
 end
 
-function [xs, ds, steps] = sd(f,g,x0, max_iter, tol)
-  % Steepest Descent with Armijo's Rule for inexact line search
+function [xs, ds, steps] = gd(f,g,x0, max_iter, tol)
+  % Gradient Descent with Armijo's Rule for inexact line search
   % It uses a small starting α to offset the rapidly varying derivative
   % Iteratively increases the step taken to update the x with the gradient
   %
@@ -186,6 +193,7 @@ function [xs, ds, steps] = sd(f,g,x0, max_iter, tol)
     % by which chosing α s.t. max[f(x + α*d) < f(x) - σ*d'*d*α]
     % achieves convergence to the result
     if norm(d(:,l+1) - d(:,l)) <= tol
+      l = l+1;
       break
     end
     alpha = [alpha,armijo(f,g,x(:,l+1))];
@@ -291,6 +299,7 @@ function [xs, ds, steps] = nmt(f,g,x0, max_iter, tol)
     d = [d,-g(x(:,l+1))];
     t = [t, f(x(:,l+1))];
     if norm(d(:,l+1) - d(:,l)) < tol
+      l = l+1;
       break
     end
     % find new α by satisfying modified Newton's method
@@ -330,6 +339,7 @@ function [xs, ds, steps] = wolfe(f,g,x0, max_iter, tol)
     x = [x, x_next];
     d = [d,-g(x(:,l+1))];
     if norm(d(:,l+1) - d(:,l)) <= tol
+      l = l+1;
       break
     end
     % find new alpha via modified Armijo's condition
@@ -370,3 +380,8 @@ function alpha = modiarmijo(f,g,x,opts)
     end
   end
 end
+
+function y = cayley(x)
+  y = (1 - x)/(1 + x);
+end
+
