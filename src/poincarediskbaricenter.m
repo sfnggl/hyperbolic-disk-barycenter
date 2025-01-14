@@ -60,7 +60,7 @@ function b = poincarediskbaricenter(xs)
   figure(1);
   hold on;
   ## subplot(1,4,1)
-  plot([1:ss(1)], vecnorm(ds(:,[1,2]),2,2)(1:ss(1)), '-', 'LineWidth', 2, 'DisplayName', 'Gradient Descent', 'Color', 'green');
+  semilogy([1:ss(1)], vecnorm(ds(:,[1,2]),2,2)(1:ss(1)), '-', 'LineWidth', 2, 'DisplayName', 'Gradient Descent', 'Color', 'green');
   title('Gradient Descent', 'FontSize', 18);
   xlabel('Steps', 'FontSize', 15);
   ylabel('||G||', 'FontSize', 15);
@@ -68,7 +68,7 @@ function b = poincarediskbaricenter(xs)
   legend();
   figure(2);
   ## subplot(1,4,2)
-  plot([1:ss(2)], vecnorm(ds(:,[3,4]),2,2)(1:ss(2)), '-', 'LineWidth', 2, 'DisplayName', 'Barzilai-Borwein', 'Color', 'red');
+  semilogy([1:ss(2)], vecnorm(ds(:,[3,4]),2,2)(1:ss(2)), '-', 'LineWidth', 2, 'DisplayName', 'Barzilai-Borwein', 'Color', 'red');
   title('Barzilai-Borwein', 'FontSize', 18);
   xlabel('Steps', 'FontSize', 15);
   ylabel('||G||', 'FontSize', 15);
@@ -76,7 +76,7 @@ function b = poincarediskbaricenter(xs)
   legend();
   figure(3);
   ## subplot(1,4,3)
-  plot([1:ss(3)], vecnorm(ds(:,[5,6]),2,2)(1:ss(3)), '-', 'LineWidth', 2, 'DisplayName', 'Non Monotonic Search', 'Color', 'blue');
+  semilogy([1:ss(3)], vecnorm(ds(:,[5,6]),2,2)(1:ss(3)), '-', 'LineWidth', 2, 'DisplayName', 'Non Monotonic Search', 'Color', 'blue');
   title('Non-Monotonic Search', 'FontSize', 18);
   xlabel('Steps', 'FontSize', 15);
   ylabel('||G||', 'FontSize', 15);
@@ -84,7 +84,7 @@ function b = poincarediskbaricenter(xs)
   legend();
   figure(4);
   ## subplot(1,4,4)
-  plot([1:ss(4)], vecnorm(ds(:,[7,8]),2,2)(1:ss(4)), '-', 'LineWidth', 2, 'DisplayName', "Wolfe\'s Conditions", 'Color', 'magenta');
+  semilogy([1:ss(4)], vecnorm(ds(:,[7,8]),2,2)(1:ss(4)), '-', 'LineWidth', 2, 'DisplayName', "Wolfe\'s Conditions", 'Color', 'magenta');
   title("Wolfe\'s Conditions", 'FontSize', 18);
   xlabel('Steps', 'FontSize', 15);
   ylabel('||G||', 'FontSize', 15);

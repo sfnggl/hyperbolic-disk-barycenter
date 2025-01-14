@@ -2,8 +2,7 @@ clear all;
 clc;
 
 xs = linspace(0.1,0.9,10);
-xs = [0.2,0.5M=];
-ys = zeros(1,2);
+ys = zeros(1,10);
 
 ps = [[xs;ys]]
 
