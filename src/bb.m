@@ -1,36 +1,32 @@
-function [x_stat, g_stat, steps] = bb(f, g, x0, max_iter, tol)
-  if nargin() < 3
-    error("not enough inputs supplied")
-  end
-  if not(exist("max_iter"))
-    max_iter = 1000;
-  end
-  if not(exist("tol"))
-    tol = 10d-10;
-  end
+function [xs, ds, steps] = bb(f,g,x0, max_iter, tol)
+  % Barzilai-Borwein with Big-Small step
+  %
+  % uses second-order information
+  % by means of Newton's Method, whereby iterating
+  % x(k+1) = x(k) − (F(k))^−1*g(k)
+  % founds a rapid solution
+  %
   l = 1;
   x = [x0];
-  d = [-g(x(:,l))];
-  alpha = [1];
+  d = [-g(x0)];
+  alpha = [0.1];
   while norm(d(:,l)) > tol && l < max_iter
-    %% compute next step
-    x = [x, x(:,l) - alpha(l)*d(:,l)];
-    %% compute next gradient
-    d = [d, -g(x(:,l+1))];
-    s = x(:,l+1) - x(:,l);
-    y = d(:,l+1) - d(:,l);
-    %% compute next alpha
-    if mod(l, 2)
-      alpha = [alpha, (s' * s) / (s' * y)];
-    else
-      alpha = [alpha, (s' * y) / (y' * y)];
-    end
-    if norm(d(:,l) - d(:,l+1)) < tol
+    x_next = x(:,l) + alpha(:,l)*d(:,l);
+    if (norm(x_next,1) >= 1)
       break
     end
+    x = [x, x_next];
+    d = [d,-g(x(:,l+1))];
+    s = x(:,l+1) - x(:,l);
+    y = d(:,l+1) - d(:,l);
+    if norm(d(:,l+1) - d(:,l)) <= tol
+      break
+    end
+    %% compute next α
+    alpha = [alpha, -1 * (s' * s) / (s' * y)];
     l = l+1;
   end
   steps = l;
-  x_stat = x;
-  g_stat = d;
+  xs = x;
+  ds = d;
 end

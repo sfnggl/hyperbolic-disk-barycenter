@@ -1,7 +1,16 @@
-% inexact line search
 function alpha = armijo(f,g,x,opts)
+  % backtracking line search
+  %
+  % given an adequate step size α, it can be proved
+  % that a search over the condition
+  % f(x + α*p) < f(x) + α*τ
+  % given f ∈ C¹,τ = c*m, c ∈ (0,1), m > 0
+  % yields a result x' in a finite amount of steps
+  % such that ▽f(x') = 0
+  %
+  %
   if not(exist("opts"))
-    abar = 1;
+    abar = 0.1;
     beta = 0.4;
     sigma = 0.9;
   else
@@ -20,7 +29,3 @@ function alpha = armijo(f,g,x,opts)
     alpha = alpha * beta;
   end
 end
-
-%% Si puo creare un file unico dove si
-%% passano una struttura dati di opzioni
-%% e in base a quelli ritornare una formula diversa
