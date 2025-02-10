@@ -142,11 +142,11 @@ function d = partial_derivative(z1, z2)
   % with respect to the two points
   % C, C |-> C
   %
-  g = @(z1, z2) (2 * norm(z1 - z2,1)^2);
-  h = @(z1, z2) ((1 - norm(z1,1) ^2)  * (1 - norm(z2,1) ^2));
+  g = @(z1, z2) (2 * norm(z1 - z2,2)^2);
+  h = @(z1, z2) ((1 - norm(z1) ^2)  * (1 - norm(z2) ^2));
   f = @(z1, z2) (1 + g(z1,z2) / h(z1,z2));
   dg = [4 * (z1 - z2), 4 * (z2 - z1)]; % (d/d(z1) g, d/d(z2) g)
-  dh = [z1  * (1 - norm(z2,1) ^2) * (-2), z2  * (1 - norm(z1,1) ^2) * (-2)]; % (d/d(z1) h, d/d(z2) h)
+  dh = [z1  * (1 - norm(z2) ^2) * (-2), z2  * (1 - norm(z1) ^2) * (-2)]; % (d/d(z1) h, d/d(z2) h)
   df = (h(z1,z2) * dg - g(z1,z2) * dh)  / h(z1,z2) ^2; % (d/d(z1) f, d/d(z2) f)
   d = df / sqrt(f(z1,z2) ^ 2 - 1);
 end
@@ -165,9 +165,9 @@ function d = distance(x, y)
   % for each pair of points x,y in D, hyperbolic plane of n-dimension
   % norm(x-y)^2 / (1 - norm(x)^2) / (1 - norm(x)^2 =  5 * (cosh(d(x,y) - 1))
   %
-  modsqrx = norm(x,1) ^ 2;
-  modsqry = norm(y,1) ^ 2;
-  esqrdiff = norm(x-y,1) ^ 2;
+  modsqrx = norm(x) ^ 2;
+  modsqry = norm(y) ^ 2;
+  esqrdiff = norm(x-y) ^ 2;
   d = acosh(1 + 2 * esqrdiff / (1 - modsqrx) / (1 - modsqry));
 end
 
@@ -184,7 +184,7 @@ function [xs, ds, steps] = gd(f,g,x0, max_iter, tol)
   while norm(d(:,l)) > tol && l < max_iter
     % compute gradient
     x_next = x(:,l) + alpha(:,l)*d(:,l);
-    if (norm(x_next,1) >= 1)
+    if (norm(x_next) >= 1)
       break
     end
     x = [x, x_next];
@@ -250,7 +250,7 @@ function [xs, ds, steps] = bb(f,g,x0, max_iter, tol)
   alpha = [0.1];
   while norm(d(:,l)) > tol && l < max_iter
     x_next = x(:,l) + alpha(:,l)*d(:,l);
-    if (norm(x_next,1) >= 1)
+    if (norm(x_next) >= 1)
       break
     end
     x = [x, x_next];
@@ -292,7 +292,7 @@ function [xs, ds, steps] = nmt(f,g,x0, max_iter, tol)
   m = [1];
   while norm(d(:,l)) > tol && l < max_iter
     x_next = x(:,l) + alpha*d(:,l);
-    if (norm(x_next,1) >= 1)
+    if (norm(x_next) >= 1)
       break
     end
     x = [x, x_next];
@@ -333,7 +333,7 @@ function [xs, ds, steps] = wolfe(f,g,x0, max_iter, tol)
   %% Iterate up to a numerical bound or convergence
   while norm(d(:,l)) > tol && l < max_iter
     x_next = x(:,l) + alpha(:,l)*d(:,l);
-    if (norm(x_next,1) >= 1)
+    if (norm(x_next) >= 1)
       break
     end
     x = [x, x_next];
